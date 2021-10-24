@@ -29,20 +29,11 @@ public final class DbMessageState implements MutableMessageState {
    */
   private final ColumnFamily<DbLong, StoredMessage> messageColumnFamily;
 
-  private final DbLong messageKey;
-  private final StoredMessage message;
-
   /**
    * <pre>name | correlation key | key -> []
    *
    * find message by name and correlation key - the message key ensures the queue ordering
    */
-  private final DbString messageName;
-
-  private final DbString correlationKey;
-  private final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong>
-      nameCorrelationMessageKey;
-  private final DbCompositeKey<DbString, DbString> nameAndCorrelationKey;
   private final ColumnFamily<DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong>, DbNil>
       nameCorrelationMessageColumnFamily;
 
@@ -51,9 +42,6 @@ public final class DbMessageState implements MutableMessageState {
    *
    * find messages which are before a given timestamp
    */
-  private final DbLong deadline;
-
-  private final DbCompositeKey<DbLong, DbLong> deadlineMessageKey;
   private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil> deadlineColumnFamily;
 
   /**
@@ -61,10 +49,6 @@ public final class DbMessageState implements MutableMessageState {
    *
    * exist a message for a given message name, correlation key and message id
    */
-  private final DbString messageId;
-
-  private final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbString>
-      nameCorrelationMessageIdKey;
   private final ColumnFamily<DbCompositeKey<DbCompositeKey<DbString, DbString>, DbString>, DbNil>
       messageIdColumnFamily;
 
@@ -73,9 +57,6 @@ public final class DbMessageState implements MutableMessageState {
    *
    * check if a message is correlated to a process
    */
-  private final DbCompositeKey<DbLong, DbString> messageBpmnProcessIdKey;
-
-  private final DbString bpmnProcessIdKey;
   private final ColumnFamily<DbCompositeKey<DbLong, DbString>, DbNil> correlatedMessageColumnFamily;
 
   /**
@@ -83,8 +64,6 @@ public final class DbMessageState implements MutableMessageState {
    *
    * check if a process instance is created by this correlation key
    */
-  private final DbCompositeKey<DbString, DbString> bpmnProcessIdCorrelationKey;
-
   private final ColumnFamily<DbCompositeKey<DbString, DbString>, DbNil>
       activeProcessInstancesByCorrelationKeyColumnFamiliy;
 
@@ -93,17 +72,25 @@ public final class DbMessageState implements MutableMessageState {
    *
    * get correlation key by process instance key
    */
-  private final DbLong processInstanceKey;
-
   private final ColumnFamily<DbLong, DbString> processInstanceCorrelationKeyColumnFamiliy;
 
   public DbMessageState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb, final TransactionContext transactionContext) {
+
+    final DbLong messageKey;
+    final StoredMessage message;
+
     messageKey = new DbLong();
     message = new StoredMessage();
     messageColumnFamily =
         zeebeDb.createColumnFamily(
             ZbColumnFamilies.MESSAGE_KEY, transactionContext, messageKey, message);
+
+    final DbString messageName;
+
+    final DbString correlationKey;
+    final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong> nameCorrelationMessageKey;
+    final DbCompositeKey<DbString, DbString> nameAndCorrelationKey;
 
     messageName = new DbString();
     correlationKey = new DbString();
@@ -116,6 +103,10 @@ public final class DbMessageState implements MutableMessageState {
             nameCorrelationMessageKey,
             DbNil.INSTANCE);
 
+    final DbLong deadline;
+
+    final DbCompositeKey<DbLong, DbLong> deadlineMessageKey;
+
     deadline = new DbLong();
     deadlineMessageKey = new DbCompositeKey<>(deadline, messageKey);
     deadlineColumnFamily =
@@ -124,6 +115,10 @@ public final class DbMessageState implements MutableMessageState {
             transactionContext,
             deadlineMessageKey,
             DbNil.INSTANCE);
+
+    final DbString messageId;
+
+    final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbString> nameCorrelationMessageIdKey;
 
     messageId = new DbString();
     nameCorrelationMessageIdKey = new DbCompositeKey<>(nameAndCorrelationKey, messageId);
@@ -134,6 +129,10 @@ public final class DbMessageState implements MutableMessageState {
             nameCorrelationMessageIdKey,
             DbNil.INSTANCE);
 
+    final DbCompositeKey<DbLong, DbString> messageBpmnProcessIdKey;
+
+    final DbString bpmnProcessIdKey;
+
     bpmnProcessIdKey = new DbString();
     messageBpmnProcessIdKey = new DbCompositeKey<>(messageKey, bpmnProcessIdKey);
     correlatedMessageColumnFamily =
@@ -143,6 +142,8 @@ public final class DbMessageState implements MutableMessageState {
             messageBpmnProcessIdKey,
             DbNil.INSTANCE);
 
+    final DbCompositeKey<DbString, DbString> bpmnProcessIdCorrelationKey;
+
     bpmnProcessIdCorrelationKey = new DbCompositeKey<>(bpmnProcessIdKey, correlationKey);
     activeProcessInstancesByCorrelationKeyColumnFamiliy =
         zeebeDb.createColumnFamily(
@@ -151,6 +152,7 @@ public final class DbMessageState implements MutableMessageState {
             bpmnProcessIdCorrelationKey,
             DbNil.INSTANCE);
 
+    final DbLong processInstanceKey;
     processInstanceKey = new DbLong();
     processInstanceCorrelationKeyColumnFamiliy =
         zeebeDb.createColumnFamily(
@@ -162,20 +164,51 @@ public final class DbMessageState implements MutableMessageState {
 
   @Override
   public void put(final long key, final MessageRecord record) {
+    final DbLong messageKey;
+    final StoredMessage message;
+
+    messageKey = new DbLong();
+    message = new StoredMessage();
+
     messageKey.wrapLong(key);
     message.setMessageKey(key).setMessage(record);
     messageColumnFamily.put(messageKey, message);
+
+    final DbString messageName;
+
+    final DbString correlationKey;
+    final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong> nameCorrelationMessageKey;
+    final DbCompositeKey<DbString, DbString> nameAndCorrelationKey;
+
+    messageName = new DbString();
+    correlationKey = new DbString();
+    nameAndCorrelationKey = new DbCompositeKey<>(messageName, correlationKey);
+    nameCorrelationMessageKey = new DbCompositeKey<>(nameAndCorrelationKey, messageKey);
 
     messageName.wrapBuffer(record.getNameBuffer());
     correlationKey.wrapBuffer(record.getCorrelationKeyBuffer());
     nameCorrelationMessageColumnFamily.put(nameCorrelationMessageKey, DbNil.INSTANCE);
 
+    final DbLong deadline;
+
+    final DbCompositeKey<DbLong, DbLong> deadlineMessageKey;
+
+    deadline = new DbLong();
+    deadlineMessageKey = new DbCompositeKey<>(deadline, messageKey);
+
     deadline.wrapLong(record.getDeadline());
     deadlineColumnFamily.put(deadlineMessageKey, DbNil.INSTANCE);
 
-    final DirectBuffer messageId = record.getMessageIdBuffer();
-    if (messageId.capacity() > 0) {
-      this.messageId.wrapBuffer(messageId);
+    final DbString messageId;
+
+    final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbString> nameCorrelationMessageIdKey;
+
+    messageId = new DbString();
+    nameCorrelationMessageIdKey = new DbCompositeKey<>(nameAndCorrelationKey, messageId);
+
+    final DirectBuffer recordMessageIdBuffer = record.getMessageIdBuffer();
+    if (recordMessageIdBuffer.capacity() > 0) {
+      messageId.wrapBuffer(recordMessageIdBuffer);
       messageIdColumnFamily.put(nameCorrelationMessageIdKey, DbNil.INSTANCE);
     }
   }
@@ -185,20 +218,8 @@ public final class DbMessageState implements MutableMessageState {
     ensureGreaterThan("message key", messageKey, 0);
     ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
 
-    this.messageKey.wrapLong(messageKey);
-    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
-    correlatedMessageColumnFamily.put(messageBpmnProcessIdKey, DbNil.INSTANCE);
-  }
-
-  @Override
-  public boolean existMessageCorrelation(final long messageKey, final DirectBuffer bpmnProcessId) {
-    ensureGreaterThan("message key", messageKey, 0);
-    ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
-
-    this.messageKey.wrapLong(messageKey);
-    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
-
-    return correlatedMessageColumnFamily.exists(messageBpmnProcessIdKey);
+    correlatedMessageColumnFamily.put(
+        buildKeyCorrelatedMessage(messageKey, bpmnProcessId), DbNil.INSTANCE);
   }
 
   @Override
@@ -206,21 +227,7 @@ public final class DbMessageState implements MutableMessageState {
     ensureGreaterThan("message key", messageKey, 0);
     ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
 
-    this.messageKey.wrapLong(messageKey);
-    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
-
-    correlatedMessageColumnFamily.delete(messageBpmnProcessIdKey);
-  }
-
-  @Override
-  public boolean existActiveProcessInstance(
-      final DirectBuffer bpmnProcessId, final DirectBuffer correlationKey) {
-    ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
-    ensureNotNullOrEmpty("correlation key", correlationKey);
-
-    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
-    this.correlationKey.wrapBuffer(correlationKey);
-    return activeProcessInstancesByCorrelationKeyColumnFamiliy.exists(bpmnProcessIdCorrelationKey);
+    correlatedMessageColumnFamily.delete(buildKeyCorrelatedMessage(messageKey, bpmnProcessId));
   }
 
   @Override
@@ -229,10 +236,8 @@ public final class DbMessageState implements MutableMessageState {
     ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
     ensureNotNullOrEmpty("correlation key", correlationKey);
 
-    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
-    this.correlationKey.wrapBuffer(correlationKey);
     activeProcessInstancesByCorrelationKeyColumnFamiliy.put(
-        bpmnProcessIdCorrelationKey, DbNil.INSTANCE);
+        buildKeyProcessInstanceCorrelation(bpmnProcessId, correlationKey), DbNil.INSTANCE);
   }
 
   @Override
@@ -241,9 +246,8 @@ public final class DbMessageState implements MutableMessageState {
     ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
     ensureNotNullOrEmpty("correlation key", correlationKey);
 
-    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
-    this.correlationKey.wrapBuffer(correlationKey);
-    activeProcessInstancesByCorrelationKeyColumnFamiliy.delete(bpmnProcessIdCorrelationKey);
+    activeProcessInstancesByCorrelationKeyColumnFamiliy.delete(
+        buildKeyProcessInstanceCorrelation(bpmnProcessId, correlationKey));
   }
 
   @Override
@@ -258,6 +262,86 @@ public final class DbMessageState implements MutableMessageState {
   }
 
   @Override
+  public void removeProcessInstanceCorrelationKey(final long processInstanceKey) {
+    ensureGreaterThan("process instance key", processInstanceKey, 0);
+
+    this.processInstanceKey.wrapLong(processInstanceKey);
+    processInstanceCorrelationKeyColumnFamiliy.delete(this.processInstanceKey);
+  }
+
+  @Override
+  public void remove(final long key) {
+    final StoredMessage storedMessage = getMessage(key);
+    if (storedMessage == null) {
+      return;
+    }
+
+    messageKey.wrapLong(storedMessage.getMessageKey());
+    messageColumnFamily.delete(messageKey);
+
+    messageName.wrapBuffer(storedMessage.getMessage().getNameBuffer());
+    correlationKey.wrapBuffer(storedMessage.getMessage().getCorrelationKeyBuffer());
+
+    nameCorrelationMessageColumnFamily.delete(nameCorrelationMessageKey);
+
+    final DirectBuffer messageId = storedMessage.getMessage().getMessageIdBuffer();
+    if (messageId.capacity() > 0) {
+      this.messageId.wrapBuffer(messageId);
+      messageIdColumnFamily.delete(nameCorrelationMessageIdKey);
+    }
+
+    deadline.wrapLong(storedMessage.getMessage().getDeadline());
+    deadlineColumnFamily.delete(deadlineMessageKey);
+
+    correlatedMessageColumnFamily.whileEqualPrefix(
+        messageKey,
+        ((compositeKey, zbNil) -> {
+          correlatedMessageColumnFamily.delete(compositeKey);
+        }));
+  }
+
+  DbCompositeKey<DbString, DbString> buildKeyProcessInstanceCorrelation(
+      final DirectBuffer bpmnProcessId, final DirectBuffer correlationKey) {
+
+    final DbString bpmnProcessIdKeyPart = new DbString();
+    bpmnProcessIdKeyPart.wrapBuffer(bpmnProcessId);
+    final DbString correlationKeyPart = new DbString();
+    correlationKeyPart.wrapBuffer(correlationKey);
+
+    return new DbCompositeKey<>(bpmnProcessIdKeyPart, correlationKeyPart);
+  }
+
+  private DbCompositeKey<DbLong, DbString> buildKeyCorrelatedMessage(
+      final long messageKeyArg, final DirectBuffer bpmnProcessId) {
+    final DbString bpmnProcessIdKey = new DbString();
+    final DbLong messageKey = new DbLong();
+
+    messageKey.wrapLong(messageKeyArg);
+    bpmnProcessIdKey.wrapBuffer(bpmnProcessId);
+
+    return new DbCompositeKey<>(messageKey, bpmnProcessIdKey);
+  }
+
+  @Override
+  public boolean existMessageCorrelation(final long messageKey, final DirectBuffer bpmnProcessId) {
+    ensureGreaterThan("message key", messageKey, 0);
+    ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
+
+    return correlatedMessageColumnFamily.exists(
+        buildKeyCorrelatedMessage(messageKey, bpmnProcessId));
+  }
+
+  @Override
+  public boolean existActiveProcessInstance(
+      final DirectBuffer bpmnProcessId, final DirectBuffer correlationKey) {
+    ensureNotNullOrEmpty("BPMN process id", bpmnProcessId);
+    ensureNotNullOrEmpty("correlation key", correlationKey);
+
+    return activeProcessInstancesByCorrelationKeyColumnFamiliy.exists(
+        buildKeyProcessInstanceCorrelation(bpmnProcessId, correlationKey));
+  }
+
+  @Override
   public DirectBuffer getProcessInstanceCorrelationKey(final long processInstanceKey) {
     ensureGreaterThan("process instance key", processInstanceKey, 0);
 
@@ -266,14 +350,6 @@ public final class DbMessageState implements MutableMessageState {
         processInstanceCorrelationKeyColumnFamiliy.get(this.processInstanceKey);
 
     return correlationKey != null ? correlationKey.getBuffer() : null;
-  }
-
-  @Override
-  public void removeProcessInstanceCorrelationKey(final long processInstanceKey) {
-    ensureGreaterThan("process instance key", processInstanceKey, 0);
-
-    this.processInstanceKey.wrapLong(processInstanceKey);
-    processInstanceCorrelationKeyColumnFamiliy.delete(this.processInstanceKey);
   }
 
   @Override
@@ -320,36 +396,5 @@ public final class DbMessageState implements MutableMessageState {
     this.messageId.wrapBuffer(messageId);
 
     return messageIdColumnFamily.exists(nameCorrelationMessageIdKey);
-  }
-
-  @Override
-  public void remove(final long key) {
-    final StoredMessage storedMessage = getMessage(key);
-    if (storedMessage == null) {
-      return;
-    }
-
-    messageKey.wrapLong(storedMessage.getMessageKey());
-    messageColumnFamily.delete(messageKey);
-
-    messageName.wrapBuffer(storedMessage.getMessage().getNameBuffer());
-    correlationKey.wrapBuffer(storedMessage.getMessage().getCorrelationKeyBuffer());
-
-    nameCorrelationMessageColumnFamily.delete(nameCorrelationMessageKey);
-
-    final DirectBuffer messageId = storedMessage.getMessage().getMessageIdBuffer();
-    if (messageId.capacity() > 0) {
-      this.messageId.wrapBuffer(messageId);
-      messageIdColumnFamily.delete(nameCorrelationMessageIdKey);
-    }
-
-    deadline.wrapLong(storedMessage.getMessage().getDeadline());
-    deadlineColumnFamily.delete(deadlineMessageKey);
-
-    correlatedMessageColumnFamily.whileEqualPrefix(
-        messageKey,
-        ((compositeKey, zbNil) -> {
-          correlatedMessageColumnFamily.delete(compositeKey);
-        }));
   }
 }
