@@ -11,12 +11,14 @@ MAVEN_PROPERTIES=(
   -DskipITs
   -DskipChecks
   -DtestMavenId=1
-  -Dsurefire.rerunFailingTestsCount=7
+  -Dsurefire.rerunFailingTestsCount=3
 )
 tmpfile=$(mktemp)
 
 if [ ! -z "$SUREFIRE_FORK_COUNT" ]; then
   MAVEN_PROPERTIES+=("-DforkCount=$SUREFIRE_FORK_COUNT")
+  # this is a rough heuristic to avoid OOM errors due to high parallelism
+  export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -XX:MaxRAMFraction=${SUREFIRE_FORK_COUNT}"
 fi
 
 if [ ! -z "$JUNIT_THREAD_COUNT" ]; then
