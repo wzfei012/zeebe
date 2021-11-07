@@ -14,10 +14,13 @@ MAVEN_PROPERTIES=(
   -DskipChecks
   -DtestMavenId=3
   -Dsurefire.rerunFailingTestsCount=3
+  -Dmaven.javadoc.skip=true
+  -Dmaven.main.skip=true
+  -Dmaven.test.skip=true
 )
 tempFile=$(mktemp)
 
-if [ ! -z "$SUREFIRE_FORK_COUNT" ]; then
+if [ -n "$SUREFIRE_FORK_COUNT" ]; then
   MAVEN_PROPERTIES+=("-DforkCount=$SUREFIRE_FORK_COUNT")
   # if we know the fork count, we can limit the max heap for each fork to ensure we're not OOM killed
   export JAVA_TOOL_OPTIONS="${JAVA_TOOL_OPTIONS} -XX:MaxRAMFraction=${SUREFIRE_FORK_COUNT}"

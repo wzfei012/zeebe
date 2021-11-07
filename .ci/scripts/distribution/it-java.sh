@@ -14,6 +14,8 @@ MAVEN_PROPERTIES=(
   -DtestMavenId=2
   -Dfailsafe.rerunFailingTestsCount=3
   -Dflaky.test.reportDir=failsafe-reports
+  -Dmaven.main.skip=true
+  -Dmaven.test.skip=true
 )
 tempFile=$(mktemp)
 

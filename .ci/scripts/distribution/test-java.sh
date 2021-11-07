@@ -12,6 +12,9 @@ MAVEN_PROPERTIES=(
   -DskipChecks
   -DtestMavenId=1
   -Dsurefire.rerunFailingTestsCount=3
+  -Dmaven.javadoc.skip=true
+  -Dmaven.main.skip=true
+  -Dmaven.test.skip=true
 )
 tempFile=$(mktemp)
 
