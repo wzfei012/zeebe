@@ -11,6 +11,7 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.impl.DbCompositeKey;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbInt;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbNil;
@@ -294,6 +295,11 @@ public final class DbElementInstanceState implements MutableElementInstanceState
         (key, number) -> {
           numberOfTakenSequenceFlowsColumnFamily.delete(key);
         });
+  }
+
+  public static DbForeignKey<DbLong> foreignKey() {
+    final var elementInstanceKey = new DbLong();
+    return new DbForeignKey<>(elementInstanceKey, ZbColumnFamilies.ELEMENT_INSTANCE_KEY);
   }
 
   @FunctionalInterface

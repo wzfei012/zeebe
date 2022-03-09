@@ -10,6 +10,7 @@ package io.camunda.zeebe.engine.state.instance;
 import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.engine.metrics.IncidentMetrics;
 import io.camunda.zeebe.engine.state.ZbColumnFamilies;
@@ -32,9 +33,9 @@ public final class DbIncidentState implements MutableIncidentState {
   private final ColumnFamily<DbLong, Incident> incidentColumnFamily;
 
   /** element instance key -> incident key */
-  private final DbLong elementInstanceKey;
+  private final DbForeignKey<DbLong> elementInstanceKey;
 
-  private final ColumnFamily<DbLong, IncidentKey> processInstanceIncidentColumnFamily;
+  private final ColumnFamily<DbForeignKey<DbLong>, IncidentKey> processInstanceIncidentColumnFamily;
 
   /** job key -> incident key */
   private final DbLong jobKey;
@@ -53,7 +54,7 @@ public final class DbIncidentState implements MutableIncidentState {
         zeebeDb.createColumnFamily(
             ZbColumnFamilies.INCIDENTS, transactionContext, incidentKey, incidentRead);
 
-    elementInstanceKey = new DbLong();
+    elementInstanceKey = DbElementInstanceState.foreignKey();
     processInstanceIncidentColumnFamily =
         zeebeDb.createColumnFamily(
             ZbColumnFamilies.INCIDENT_PROCESS_INSTANCES,
@@ -80,11 +81,30 @@ public final class DbIncidentState implements MutableIncidentState {
       jobKey.wrapLong(incident.getJobKey());
       jobIncidentColumnFamily.put(jobKey, incidentKeyValue);
     } else {
-      elementInstanceKey.wrapLong(incident.getElementInstanceKey());
+      elementInstanceKey.inner().wrapLong(incident.getElementInstanceKey());
       processInstanceIncidentColumnFamily.put(elementInstanceKey, incidentKeyValue);
     }
 
     metrics.incidentCreated();
+  }
+
+  @Override
+  public void deleteIncident(final long key) {
+    final IncidentRecord incidentRecord = getIncidentRecord(key);
+
+    if (incidentRecord != null) {
+      incidentColumnFamily.delete(incidentKey);
+
+      if (isJobIncident(incidentRecord)) {
+        jobKey.wrapLong(incidentRecord.getJobKey());
+        jobIncidentColumnFamily.delete(jobKey);
+      } else {
+        elementInstanceKey.inner().wrapLong(incidentRecord.getElementInstanceKey());
+        processInstanceIncidentColumnFamily.delete(elementInstanceKey);
+      }
+
+      metrics.incidentResolved();
+    }
   }
 
   @Override
@@ -99,27 +119,8 @@ public final class DbIncidentState implements MutableIncidentState {
   }
 
   @Override
-  public void deleteIncident(final long key) {
-    final IncidentRecord incidentRecord = getIncidentRecord(key);
-
-    if (incidentRecord != null) {
-      incidentColumnFamily.delete(incidentKey);
-
-      if (isJobIncident(incidentRecord)) {
-        jobKey.wrapLong(incidentRecord.getJobKey());
-        jobIncidentColumnFamily.delete(jobKey);
-      } else {
-        elementInstanceKey.wrapLong(incidentRecord.getElementInstanceKey());
-        processInstanceIncidentColumnFamily.delete(elementInstanceKey);
-      }
-
-      metrics.incidentResolved();
-    }
-  }
-
-  @Override
   public long getProcessInstanceIncidentKey(final long processInstanceKey) {
-    elementInstanceKey.wrapLong(processInstanceKey);
+    elementInstanceKey.inner().wrapLong(processInstanceKey);
 
     final IncidentKey incidentKey = processInstanceIncidentColumnFamily.get(elementInstanceKey);
 

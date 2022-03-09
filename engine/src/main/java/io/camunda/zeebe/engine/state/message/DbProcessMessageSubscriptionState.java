@@ -11,11 +11,13 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.impl.DbCompositeKey;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbString;
 import io.camunda.zeebe.engine.processing.streamprocessor.ReadonlyProcessingContext;
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessorLifecycleAware;
 import io.camunda.zeebe.engine.state.ZbColumnFamilies;
+import io.camunda.zeebe.engine.state.instance.DbElementInstanceState;
 import io.camunda.zeebe.engine.state.mutable.MutablePendingProcessMessageSubscriptionState;
 import io.camunda.zeebe.engine.state.mutable.MutableProcessMessageSubscriptionState;
 import io.camunda.zeebe.protocol.impl.record.value.message.ProcessMessageSubscriptionRecord;
@@ -28,11 +30,12 @@ public final class DbProcessMessageSubscriptionState
         StreamProcessorLifecycleAware {
 
   // (elementInstanceKey, messageName) => ProcessMessageSubscription
-  private final DbLong elementInstanceKey;
+  private final DbForeignKey<DbLong> elementInstanceKey;
   private final DbString messageName;
-  private final DbCompositeKey<DbLong, DbString> elementKeyAndMessageName;
+  private final DbCompositeKey<DbForeignKey<DbLong>, DbString> elementKeyAndMessageName;
   private final ProcessMessageSubscription processMessageSubscription;
-  private final ColumnFamily<DbCompositeKey<DbLong, DbString>, ProcessMessageSubscription>
+  private final ColumnFamily<
+          DbCompositeKey<DbForeignKey<DbLong>, DbString>, ProcessMessageSubscription>
       subscriptionColumnFamily;
 
   private final PendingProcessMessageSubscriptionState transientState =
@@ -40,7 +43,7 @@ public final class DbProcessMessageSubscriptionState
 
   public DbProcessMessageSubscriptionState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb, final TransactionContext transactionContext) {
-    elementInstanceKey = new DbLong();
+    elementInstanceKey = DbElementInstanceState.foreignKey();
     messageName = new DbString();
     elementKeyAndMessageName = new DbCompositeKey<>(elementInstanceKey, messageName);
     processMessageSubscription = new ProcessMessageSubscription();
@@ -109,7 +112,7 @@ public final class DbProcessMessageSubscriptionState
   @Override
   public void visitElementSubscriptions(
       final long elementInstanceKey, final ProcessMessageSubscriptionVisitor visitor) {
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
 
     subscriptionColumnFamily.whileEqualPrefix(
         this.elementInstanceKey,
@@ -173,7 +176,7 @@ public final class DbProcessMessageSubscriptionState
   }
 
   private void wrapSubscriptionKeys(final long elementInstanceKey, final DirectBuffer messageName) {
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
     this.messageName.wrapBuffer(messageName);
   }
 }

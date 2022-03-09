@@ -11,6 +11,7 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.impl.DbCompositeKey;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbNil;
 import io.camunda.zeebe.engine.state.ZbColumnFamilies;
@@ -19,25 +20,26 @@ import java.util.function.Consumer;
 
 public final class DbTimerInstanceState implements MutableTimerInstanceState {
 
-  private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, TimerInstance>
+  private final ColumnFamily<DbCompositeKey<DbForeignKey<DbLong>, DbLong>, TimerInstance>
       timerInstanceColumnFamily;
-  private final TimerInstance timerInstance;
   private final DbLong timerKey;
-  private final DbLong elementInstanceKey;
-  private final DbCompositeKey<DbLong, DbLong> elementAndTimerKey;
+  private final DbForeignKey<DbLong> elementInstanceKey;
+  private final DbCompositeKey<DbForeignKey<DbLong>, DbLong> elementAndTimerKey;
 
-  private final ColumnFamily<DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbLong>>, DbNil>
+  private final ColumnFamily<
+          DbCompositeKey<DbLong, DbCompositeKey<DbForeignKey<DbLong>, DbLong>>, DbNil>
       dueDateColumnFamily;
   private final DbLong dueDateKey;
-  private final DbCompositeKey<DbLong, DbCompositeKey<DbLong, DbLong>> dueDateCompositeKey;
+  private final DbCompositeKey<DbLong, DbCompositeKey<DbForeignKey<DbLong>, DbLong>>
+      dueDateCompositeKey;
 
   private long nextDueDate;
 
   public DbTimerInstanceState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb, final TransactionContext transactionContext) {
-    timerInstance = new TimerInstance();
+    final TimerInstance timerInstance = new TimerInstance();
     timerKey = new DbLong();
-    elementInstanceKey = new DbLong();
+    elementInstanceKey = DbElementInstanceState.foreignKey();
     elementAndTimerKey = new DbCompositeKey<>(elementInstanceKey, timerKey);
     timerInstanceColumnFamily =
         zeebeDb.createColumnFamily(
@@ -56,7 +58,7 @@ public final class DbTimerInstanceState implements MutableTimerInstanceState {
   @Override
   public void put(final TimerInstance timer) {
     timerKey.wrapLong(timer.getKey());
-    elementInstanceKey.wrapLong(timer.getElementInstanceKey());
+    elementInstanceKey.inner().wrapLong(timer.getElementInstanceKey());
 
     timerInstanceColumnFamily.put(elementAndTimerKey, timer);
 
@@ -66,7 +68,7 @@ public final class DbTimerInstanceState implements MutableTimerInstanceState {
 
   @Override
   public void remove(final TimerInstance timer) {
-    elementInstanceKey.wrapLong(timer.getElementInstanceKey());
+    elementInstanceKey.inner().wrapLong(timer.getElementInstanceKey());
     timerKey.wrapLong(timer.getKey());
     timerInstanceColumnFamily.delete(elementAndTimerKey);
 
@@ -84,7 +86,7 @@ public final class DbTimerInstanceState implements MutableTimerInstanceState {
 
           boolean consumed = false;
           if (dueDate.getValue() <= timestamp) {
-            final DbCompositeKey<DbLong, DbLong> elementAndTimerKey = key.second();
+            final DbCompositeKey<DbForeignKey<DbLong>, DbLong> elementAndTimerKey = key.second();
             final TimerInstance timerInstance = timerInstanceColumnFamily.get(elementAndTimerKey);
             consumed = consumer.visit(timerInstance);
           }
@@ -101,7 +103,7 @@ public final class DbTimerInstanceState implements MutableTimerInstanceState {
   @Override
   public void forEachTimerForElementInstance(
       final long elementInstanceKey, final Consumer<TimerInstance> action) {
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
 
     timerInstanceColumnFamily.whileEqualPrefix(
         this.elementInstanceKey,
@@ -112,7 +114,7 @@ public final class DbTimerInstanceState implements MutableTimerInstanceState {
 
   @Override
   public TimerInstance get(final long elementInstanceKey, final long timerKey) {
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
     this.timerKey.wrapLong(timerKey);
 
     return timerInstanceColumnFamily.get(elementAndTimerKey);

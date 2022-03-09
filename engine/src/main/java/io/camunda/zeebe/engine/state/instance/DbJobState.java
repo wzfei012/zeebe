@@ -11,6 +11,7 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.impl.DbCompositeKey;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbNil;
 import io.camunda.zeebe.db.impl.DbString;
@@ -56,8 +57,9 @@ public final class DbJobState implements JobState, MutableJobState {
   private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil> deadlinesColumnFamily;
 
   private final DbLong backoffKey;
-  private final DbCompositeKey<DbLong, DbLong> backoffJobKey;
-  private final ColumnFamily<DbCompositeKey<DbLong, DbLong>, DbNil> backoffColumnFamily;
+  private final DbCompositeKey<DbLong, DbForeignKey<DbLong>> backoffJobKey;
+  private final ColumnFamily<DbCompositeKey<DbLong, DbForeignKey<DbLong>>, DbNil>
+      backoffColumnFamily;
   private long nextBackOffDueDate;
 
   private final JobMetrics metrics;
@@ -90,7 +92,8 @@ public final class DbJobState implements JobState, MutableJobState {
             ZbColumnFamilies.JOB_DEADLINES, transactionContext, deadlineJobKey, DbNil.INSTANCE);
 
     backoffKey = new DbLong();
-    backoffJobKey = new DbCompositeKey<>(backoffKey, jobKey);
+    backoffJobKey =
+        new DbCompositeKey<>(backoffKey, new DbForeignKey<>(jobKey, ZbColumnFamilies.JOBS));
     backoffColumnFamily =
         zeebeDb.createColumnFamily(
             ZbColumnFamilies.JOB_BACKOFF, transactionContext, backoffJobKey, DbNil.INSTANCE);
@@ -318,7 +321,7 @@ public final class DbJobState implements JobState, MutableJobState {
           final long deadline = key.first().getValue();
           boolean consumed = false;
           if (deadline <= timestamp) {
-            final long jobKey = key.second().getValue();
+            final long jobKey = key.second().inner().getValue();
             consumed = visitJob(jobKey, callback, () -> backoffColumnFamily.delete(key));
           }
           if (!consumed) {

@@ -17,6 +17,7 @@ import io.camunda.zeebe.engine.util.ZeebeStateRule;
 import io.camunda.zeebe.logstreams.log.LoggedEvent;
 import io.camunda.zeebe.protocol.impl.record.RecordMetadata;
 import io.camunda.zeebe.protocol.impl.record.UnifiedRecordValue;
+import io.camunda.zeebe.protocol.impl.record.value.processinstance.ProcessInstanceRecord;
 import io.camunda.zeebe.protocol.record.ValueType;
 import io.camunda.zeebe.protocol.record.intent.DeploymentIntent;
 import io.camunda.zeebe.protocol.record.intent.IncidentIntent;
@@ -191,6 +192,13 @@ public final class BlacklistInstanceTest {
   public void setup() {
     initMocks(this);
     processInstanceKey = KEY_GENERATOR.getAndIncrement();
+    ZEEBE_STATE_RULE
+        .getZeebeState()
+        .getElementInstanceState()
+        .newInstance(
+            processInstanceKey,
+            new ProcessInstanceRecord(),
+            ProcessInstanceIntent.ELEMENT_ACTIVATING);
   }
 
   @Test

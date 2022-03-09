@@ -11,12 +11,14 @@ import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
 import io.camunda.zeebe.db.impl.DbCompositeKey;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbNil;
 import io.camunda.zeebe.db.impl.DbString;
 import io.camunda.zeebe.engine.processing.streamprocessor.ReadonlyProcessingContext;
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessorLifecycleAware;
 import io.camunda.zeebe.engine.state.ZbColumnFamilies;
+import io.camunda.zeebe.engine.state.instance.DbElementInstanceState;
 import io.camunda.zeebe.engine.state.mutable.MutableMessageSubscriptionState;
 import io.camunda.zeebe.engine.state.mutable.MutablePendingMessageSubscriptionState;
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageSubscriptionRecord;
@@ -29,19 +31,20 @@ public final class DbMessageSubscriptionState
         StreamProcessorLifecycleAware {
 
   // (elementInstanceKey, messageName) => MessageSubscription
-  private final DbLong elementInstanceKey;
+  private final DbForeignKey<DbLong> elementInstanceKey;
   private final DbString messageName;
   private final MessageSubscription messageSubscription;
-  private final DbCompositeKey<DbLong, DbString> elementKeyAndMessageName;
-  private final ColumnFamily<DbCompositeKey<DbLong, DbString>, MessageSubscription>
+  private final DbCompositeKey<DbForeignKey<DbLong>, DbString> elementKeyAndMessageName;
+  private final ColumnFamily<DbCompositeKey<DbForeignKey<DbLong>, DbString>, MessageSubscription>
       subscriptionColumnFamily;
 
   // (messageName, correlationKey, elementInstanceKey) => \0
   private final DbString correlationKey;
   private final DbCompositeKey<DbString, DbString> nameAndCorrelationKey;
-  private final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong>
+  private final DbCompositeKey<DbCompositeKey<DbString, DbString>, DbForeignKey<DbLong>>
       nameCorrelationAndElementInstanceKey;
-  private final ColumnFamily<DbCompositeKey<DbCompositeKey<DbString, DbString>, DbLong>, DbNil>
+  private final ColumnFamily<
+          DbCompositeKey<DbCompositeKey<DbString, DbString>, DbForeignKey<DbLong>>, DbNil>
       messageNameAndCorrelationKeyColumnFamily;
 
   private final PendingMessageSubscriptionState transientState =
@@ -50,7 +53,7 @@ public final class DbMessageSubscriptionState
   public DbMessageSubscriptionState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb, final TransactionContext transactionContext) {
 
-    elementInstanceKey = new DbLong();
+    elementInstanceKey = DbElementInstanceState.foreignKey();
     messageName = new DbString();
     messageSubscription = new MessageSubscription();
     elementKeyAndMessageName = new DbCompositeKey<>(elementInstanceKey, messageName);
@@ -86,7 +89,7 @@ public final class DbMessageSubscriptionState
   @Override
   public MessageSubscription get(final long elementInstanceKey, final DirectBuffer messageName) {
     this.messageName.wrapBuffer(messageName);
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
     return subscriptionColumnFamily.get(elementKeyAndMessageName);
   }
 
@@ -109,7 +112,7 @@ public final class DbMessageSubscriptionState
   @Override
   public boolean existSubscriptionForElementInstance(
       final long elementInstanceKey, final DirectBuffer messageName) {
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
     this.messageName.wrapBuffer(messageName);
 
     return subscriptionColumnFamily.exists(elementKeyAndMessageName);
@@ -117,7 +120,7 @@ public final class DbMessageSubscriptionState
 
   @Override
   public void put(final long key, final MessageSubscriptionRecord record) {
-    elementInstanceKey.wrapLong(record.getElementInstanceKey());
+    elementInstanceKey.inner().wrapLong(record.getElementInstanceKey());
     messageName.wrapBuffer(record.getMessageNameBuffer());
 
     messageSubscription.setKey(key).setRecord(record).setCorrelating(false);
@@ -162,7 +165,7 @@ public final class DbMessageSubscriptionState
 
   @Override
   public boolean remove(final long elementInstanceKey, final DirectBuffer messageName) {
-    this.elementInstanceKey.wrapLong(elementInstanceKey);
+    this.elementInstanceKey.inner().wrapLong(elementInstanceKey);
     this.messageName.wrapBuffer(messageName);
 
     final MessageSubscription messageSubscription =
@@ -190,7 +193,7 @@ public final class DbMessageSubscriptionState
   private void updateCorrelatingFlag(
       final MessageSubscription subscription, final boolean correlating) {
     final var record = subscription.getRecord();
-    elementInstanceKey.wrapLong(record.getElementInstanceKey());
+    elementInstanceKey.inner().wrapLong(record.getElementInstanceKey());
     messageName.wrapBuffer(record.getMessageNameBuffer());
 
     subscription.setCorrelating(correlating);
@@ -198,7 +201,7 @@ public final class DbMessageSubscriptionState
   }
 
   private Boolean visitMessageSubscription(
-      final DbCompositeKey<DbLong, DbString> elementKeyAndMessageName,
+      final DbCompositeKey<DbForeignKey<DbLong>, DbString> elementKeyAndMessageName,
       final MessageSubscriptionVisitor visitor) {
     final MessageSubscription messageSubscription =
         subscriptionColumnFamily.get(elementKeyAndMessageName);
@@ -207,7 +210,8 @@ public final class DbMessageSubscriptionState
       throw new IllegalStateException(
           String.format(
               "Expected to find subscription with key %d and %s, but no subscription found",
-              elementKeyAndMessageName.first().getValue(), elementKeyAndMessageName.second()));
+              elementKeyAndMessageName.first().inner().getValue(),
+              elementKeyAndMessageName.second()));
     }
     return visitor.visit(messageSubscription);
   }

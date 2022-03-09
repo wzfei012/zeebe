@@ -10,12 +10,14 @@ package io.camunda.zeebe.engine.state.processing;
 import io.camunda.zeebe.db.ColumnFamily;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDb;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import io.camunda.zeebe.db.impl.DbLong;
 import io.camunda.zeebe.db.impl.DbNil;
 import io.camunda.zeebe.engine.Loggers;
 import io.camunda.zeebe.engine.metrics.BlacklistMetrics;
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecord;
 import io.camunda.zeebe.engine.state.ZbColumnFamilies;
+import io.camunda.zeebe.engine.state.instance.DbElementInstanceState;
 import io.camunda.zeebe.engine.state.mutable.MutableBlackListState;
 import io.camunda.zeebe.msgpack.UnpackedObject;
 import io.camunda.zeebe.protocol.record.intent.Intent;
@@ -31,15 +33,15 @@ public final class DbBlackListState implements MutableBlackListState {
   private static final String BLACKLIST_INSTANCE_MESSAGE =
       "Blacklist process instance {}, due to previous errors.";
 
-  private final ColumnFamily<DbLong, DbNil> blackListColumnFamily;
-  private final DbLong processInstanceKey;
+  private final ColumnFamily<DbForeignKey<DbLong>, DbNil> blackListColumnFamily;
+  private final DbForeignKey<DbLong> processInstanceKey;
   private final BlacklistMetrics blacklistMetrics;
 
   public DbBlackListState(
       final ZeebeDb<ZbColumnFamilies> zeebeDb,
       final TransactionContext transactionContext,
       final int partitionId) {
-    processInstanceKey = new DbLong();
+    processInstanceKey = DbElementInstanceState.foreignKey();
     blackListColumnFamily =
         zeebeDb.createColumnFamily(
             ZbColumnFamilies.BLACKLIST, transactionContext, processInstanceKey, DbNil.INSTANCE);
@@ -50,14 +52,14 @@ public final class DbBlackListState implements MutableBlackListState {
     if (key >= 0) {
       LOG.warn(BLACKLIST_INSTANCE_MESSAGE, key);
 
-      processInstanceKey.wrapLong(key);
+      processInstanceKey.inner().wrapLong(key);
       blackListColumnFamily.put(processInstanceKey, DbNil.INSTANCE);
       blacklistMetrics.countBlacklistedInstance();
     }
   }
 
   private boolean isOnBlacklist(final long key) {
-    processInstanceKey.wrapLong(key);
+    processInstanceKey.inner().wrapLong(key);
     return blackListColumnFamily.exists(processInstanceKey);
   }
 
