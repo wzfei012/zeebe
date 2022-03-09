@@ -16,6 +16,8 @@ import io.camunda.zeebe.db.DbValue;
 import io.camunda.zeebe.db.KeyValuePairVisitor;
 import io.camunda.zeebe.db.TransactionContext;
 import io.camunda.zeebe.db.ZeebeDbInconsistentException;
+import io.camunda.zeebe.db.impl.DbCompositeKey;
+import io.camunda.zeebe.db.impl.DbForeignKey;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
@@ -51,6 +53,8 @@ class TransactionalColumnFamily<
   private final KeyType keyInstance;
   private final ColumnFamilyContext columnFamilyContext;
 
+  private final ForeignKeyChecker foreignKeyChecker;
+
   TransactionalColumnFamily(
       final ZeebeTransactionDb<ColumnFamilyNames> transactionDb,
       final ConsistencyChecksSettings consistencyChecksSettings,
@@ -65,6 +69,7 @@ class TransactionalColumnFamily<
     this.keyInstance = keyInstance;
     this.valueInstance = valueInstance;
     columnFamilyContext = new ColumnFamilyContext(columnFamily.ordinal());
+    foreignKeyChecker = new ForeignKeyChecker(transactionDb);
   }
 
   @Override
@@ -80,6 +85,8 @@ class TransactionalColumnFamily<
           columnFamilyContext.writeValue(value);
 
           assertKeyDoesNotExist(transaction);
+          assertForeignKeyExists(transaction, key);
+          assertForeignKeyExists(transaction, value);
           transaction.put(
               transactionDb.getDefaultNativeHandle(),
               columnFamilyContext.getKeyBufferArray(),
@@ -96,6 +103,8 @@ class TransactionalColumnFamily<
           columnFamilyContext.writeKey(key);
           columnFamilyContext.writeValue(value);
           assertKeyExists(transaction);
+          assertForeignKeyExists(transaction, key);
+          assertForeignKeyExists(transaction, value);
           transaction.put(
               transactionDb.getDefaultNativeHandle(),
               columnFamilyContext.getKeyBufferArray(),
@@ -248,6 +257,16 @@ class TransactionalColumnFamily<
                 }));
 
     return isEmpty.get();
+  }
+
+  private void assertForeignKeyExists(final ZeebeTransaction transaction, final Object key)
+      throws Exception {
+    if (key instanceof DbForeignKey<? extends DbKey> foreignKey) {
+      foreignKeyChecker.assertExists(transaction, foreignKey);
+    } else if (key instanceof DbCompositeKey<?, ?> compositeKey) {
+      assertForeignKeyExists(transaction, compositeKey.first());
+      assertForeignKeyExists(transaction, compositeKey.second());
+    }
   }
 
   private void assertKeyDoesNotExist(final ZeebeTransaction transaction) throws Exception {
