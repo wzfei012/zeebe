@@ -1,11 +1,11 @@
-name: "Code Scanning - Action"
+name: "Code Scanning"
 on:
   push:
     branches: [main]
   pull_request:
     branches: [main]
 jobs:
-  CodeQL-Build:
+  CodeQL:
     runs-on: ubuntu-latest
     permissions:
       security-events: write
