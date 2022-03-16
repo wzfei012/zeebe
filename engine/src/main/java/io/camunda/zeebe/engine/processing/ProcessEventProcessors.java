@@ -79,6 +79,7 @@ public final class ProcessEventProcessors {
         subscriptionState,
         subscriptionCommandSender,
         eventTriggerBehavior,
+        variableBehavior,
         zeebeState,
         writers);
     addTimerStreamProcessors(
@@ -87,6 +88,7 @@ public final class ProcessEventProcessors {
         zeebeState,
         catchEventBehavior,
         eventTriggerBehavior,
+        variableBehavior,
         expressionProcessor,
         writers);
     addVariableDocumentStreamProcessors(
@@ -133,6 +135,7 @@ public final class ProcessEventProcessors {
       final MutableProcessMessageSubscriptionState subscriptionState,
       final SubscriptionCommandSender subscriptionCommandSender,
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final MutableZeebeState zeebeState,
       final Writers writers) {
     typedRecordProcessors
@@ -149,6 +152,7 @@ public final class ProcessEventProcessors {
                 subscriptionCommandSender,
                 zeebeState,
                 eventTriggerBehavior,
+                variableBehavior,
                 writers))
         .onCommand(
             ValueType.PROCESS_MESSAGE_SUBSCRIPTION,
@@ -165,6 +169,7 @@ public final class ProcessEventProcessors {
       final MutableZeebeState zeebeState,
       final CatchEventBehavior catchEventOutput,
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final ExpressionProcessor expressionProcessor,
       final Writers writers) {
     typedRecordProcessors
@@ -172,7 +177,12 @@ public final class ProcessEventProcessors {
             ValueType.TIMER,
             TimerIntent.TRIGGER,
             new TriggerTimerProcessor(
-                zeebeState, catchEventOutput, eventTriggerBehavior, expressionProcessor, writers))
+                zeebeState,
+                catchEventOutput,
+                eventTriggerBehavior,
+                variableBehavior,
+                expressionProcessor,
+                writers))
         .onCommand(
             ValueType.TIMER,
             TimerIntent.CANCEL,

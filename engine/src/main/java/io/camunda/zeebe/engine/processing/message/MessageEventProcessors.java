@@ -11,6 +11,7 @@ import io.camunda.zeebe.engine.processing.common.EventTriggerBehavior;
 import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender;
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.mutable.MutableEventScopeInstanceState;
 import io.camunda.zeebe.engine.state.mutable.MutableMessageStartEventSubscriptionState;
@@ -25,6 +26,7 @@ public final class MessageEventProcessors {
 
   public static void addMessageProcessors(
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final TypedRecordProcessors typedRecordProcessors,
       final MutableZeebeState zeebeState,
       final SubscriptionCommandSender subscriptionCommandSender,
@@ -53,7 +55,8 @@ public final class MessageEventProcessors {
                 keyGenerator,
                 writers,
                 processState,
-                eventTriggerBehavior))
+                eventTriggerBehavior,
+                variableBehavior))
         .onCommand(
             ValueType.MESSAGE, MessageIntent.EXPIRE, new MessageExpireProcessor(writers.state()))
         .onCommand(

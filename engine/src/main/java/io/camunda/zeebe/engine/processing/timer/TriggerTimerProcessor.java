@@ -22,9 +22,9 @@ import io.camunda.zeebe.engine.processing.streamprocessor.writers.TypedRejection
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.TypedResponseWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.TypedStreamWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.immutable.ElementInstanceState;
-import io.camunda.zeebe.engine.state.immutable.EventScopeInstanceState;
 import io.camunda.zeebe.engine.state.immutable.ProcessState;
 import io.camunda.zeebe.engine.state.mutable.MutableTimerInstanceState;
 import io.camunda.zeebe.engine.state.mutable.MutableZeebeState;
@@ -54,7 +54,6 @@ public final class TriggerTimerProcessor implements TypedRecordProcessor<TimerRe
   private final MutableTimerInstanceState timerInstanceState;
   private final ExpressionProcessor expressionProcessor;
   private final KeyGenerator keyGenerator;
-  private final EventScopeInstanceState eventScopeInstanceState;
   private final StateWriter stateWriter;
   private final TypedRejectionWriter rejectionWriter;
   private final EventHandle eventHandle;
@@ -63,6 +62,7 @@ public final class TriggerTimerProcessor implements TypedRecordProcessor<TimerRe
       final MutableZeebeState zeebeState,
       final CatchEventBehavior catchEventBehavior,
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final ExpressionProcessor expressionProcessor,
       final Writers writers) {
     this.catchEventBehavior = catchEventBehavior;
@@ -74,14 +74,14 @@ public final class TriggerTimerProcessor implements TypedRecordProcessor<TimerRe
     elementInstanceState = zeebeState.getElementInstanceState();
     timerInstanceState = zeebeState.getTimerState();
     keyGenerator = zeebeState.getKeyGenerator();
-    eventScopeInstanceState = zeebeState.getEventScopeInstanceState();
     eventHandle =
         new EventHandle(
             keyGenerator,
             zeebeState.getEventScopeInstanceState(),
             writers,
             processState,
-            eventTriggerBehavior);
+            eventTriggerBehavior,
+            variableBehavior);
   }
 
   @Override

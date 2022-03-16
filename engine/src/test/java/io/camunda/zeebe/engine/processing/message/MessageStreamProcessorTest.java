@@ -22,6 +22,7 @@ import static org.mockito.Mockito.when;
 
 import io.camunda.zeebe.engine.processing.common.EventTriggerBehavior;
 import io.camunda.zeebe.engine.processing.message.command.SubscriptionCommandSender;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.util.StreamProcessorRule;
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageRecord;
 import io.camunda.zeebe.protocol.impl.record.value.message.MessageSubscriptionRecord;
@@ -64,6 +65,7 @@ public final class MessageStreamProcessorTest {
           final var zeebeState = processingContext.getZeebeState();
           MessageEventProcessors.addMessageProcessors(
               mock(EventTriggerBehavior.class),
+              mock(VariableBehavior.class),
               typedRecordProcessors,
               zeebeState,
               mockSubscriptionCommandSender,

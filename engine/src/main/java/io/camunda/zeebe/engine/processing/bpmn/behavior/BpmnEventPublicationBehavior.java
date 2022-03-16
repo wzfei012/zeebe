@@ -13,6 +13,7 @@ import io.camunda.zeebe.engine.processing.common.EventTriggerBehavior;
 import io.camunda.zeebe.engine.processing.common.Failure;
 import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableCatchEvent;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.analyzers.CatchEventAnalyzer;
 import io.camunda.zeebe.engine.state.analyzers.CatchEventAnalyzer.CatchEventTuple;
@@ -33,6 +34,7 @@ public final class BpmnEventPublicationBehavior {
       final ZeebeState zeebeState,
       final KeyGenerator keyGenerator,
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final Writers writers) {
     elementInstanceState = zeebeState.getElementInstanceState();
     eventHandle =
@@ -41,7 +43,8 @@ public final class BpmnEventPublicationBehavior {
             zeebeState.getEventScopeInstanceState(),
             writers,
             zeebeState.getProcessState(),
-            eventTriggerBehavior);
+            eventTriggerBehavior,
+            variableBehavior);
     catchEventAnalyzer = new CatchEventAnalyzer(zeebeState.getProcessState(), elementInstanceState);
   }
 

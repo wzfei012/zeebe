@@ -15,6 +15,7 @@ import io.camunda.zeebe.engine.processing.streamprocessor.ReadonlyProcessingCont
 import io.camunda.zeebe.engine.processing.streamprocessor.StreamProcessorLifecycleAware;
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.mutable.MutableZeebeState;
 import io.camunda.zeebe.protocol.record.ValueType;
 import io.camunda.zeebe.protocol.record.intent.JobBatchIntent;
@@ -30,7 +31,8 @@ public final class JobEventProcessors {
       final BpmnEventPublicationBehavior eventPublicationBehavior,
       final Writers writers,
       final JobMetrics jobMetrics,
-      final EventTriggerBehavior eventTriggerBehavior) {
+      final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior) {
 
     final var jobState = zeebeState.getJobState();
     final var keyGenerator = zeebeState.getKeyGenerator();
@@ -41,7 +43,8 @@ public final class JobEventProcessors {
             zeebeState.getEventScopeInstanceState(),
             writers,
             zeebeState.getProcessState(),
-            eventTriggerBehavior);
+            eventTriggerBehavior,
+            variableBehavior);
 
     final var jobBackoffChecker = new JobBackoffChecker(jobState);
     typedRecordProcessors

@@ -11,6 +11,7 @@ import io.camunda.zeebe.engine.processing.bpmn.BpmnElementContext;
 import io.camunda.zeebe.engine.processing.common.EventHandle;
 import io.camunda.zeebe.engine.processing.common.EventTriggerBehavior;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.deployment.DeployedProcess;
 import io.camunda.zeebe.engine.state.immutable.MessageStartEventSubscriptionState;
@@ -34,6 +35,7 @@ public final class BpmnBufferedMessageStartEventBehavior {
       final ZeebeState zeebeState,
       final KeyGenerator keyGenerator,
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final Writers writers) {
     messageState = zeebeState.getMessageState();
     processState = zeebeState.getProcessState();
@@ -45,7 +47,8 @@ public final class BpmnBufferedMessageStartEventBehavior {
             zeebeState.getEventScopeInstanceState(),
             writers,
             processState,
-            eventTriggerBehavior);
+            eventTriggerBehavior,
+            variableBehavior);
   }
 
   public Optional<DirectBuffer> findCorrelationKey(final BpmnElementContext context) {

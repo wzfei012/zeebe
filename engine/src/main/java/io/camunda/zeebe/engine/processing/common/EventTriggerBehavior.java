@@ -168,6 +168,7 @@ public class EventTriggerBehavior {
         .setVariablesBuffer(variables)
         .setProcessDefinitionKey(processDefinitionKey)
         .setProcessInstanceKey(processInstanceKey);
+
     stateWriter.appendFollowUpEvent(eventKey, ProcessEventIntent.TRIGGERING, processEventRecord);
     return eventKey;
   }

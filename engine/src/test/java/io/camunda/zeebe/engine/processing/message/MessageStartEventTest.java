@@ -224,10 +224,13 @@ public final class MessageStartEventTest {
             .filterRootScope()
             .getFirst();
 
-    assertThat(RecordingExporter.variableRecords().withScopeKey(processInstance.getKey()).limit(1))
+    assertThat(RecordingExporter.variableRecords().withScopeKey(processInstance.getKey()).limit(2))
         .extracting(Record::getValue)
         .extracting(VariableRecordValue::getName, VariableRecordValue::getValue)
-        .contains(tuple("y", "1"));
+        .containsExactly(
+            tuple("x", "1"), // taken from start message directly
+            tuple("y", "1") // created after processing output mapping
+            );
   }
 
   @Test

@@ -25,7 +25,7 @@ import org.agrona.DirectBuffer;
  * <p>Note that for {@link io.camunda.zeebe.engine.state.EventApplier}, you should just use the
  * mutable state directly.
  */
-public final class VariableBehavior {
+public class VariableBehavior {
 
   private final VariableState variableState;
   private final StateWriter stateWriter;

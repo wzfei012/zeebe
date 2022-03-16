@@ -19,6 +19,7 @@ import io.camunda.zeebe.engine.processing.streamprocessor.writers.StateWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.TypedResponseWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.TypedStreamWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.immutable.EventScopeInstanceState;
 import io.camunda.zeebe.engine.state.immutable.MessageStartEventSubscriptionState;
@@ -59,7 +60,8 @@ public final class MessagePublishProcessor implements TypedRecordProcessor<Messa
       final KeyGenerator keyGenerator,
       final Writers writers,
       final ProcessState processState,
-      final EventTriggerBehavior eventTriggerBehavior) {
+      final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior) {
     this.messageState = messageState;
     this.subscriptionState = subscriptionState;
     this.startEventSubscriptionState = startEventSubscriptionState;
@@ -68,7 +70,12 @@ public final class MessagePublishProcessor implements TypedRecordProcessor<Messa
     stateWriter = writers.state();
     eventHandle =
         new EventHandle(
-            keyGenerator, eventScopeInstanceState, writers, processState, eventTriggerBehavior);
+            keyGenerator,
+            eventScopeInstanceState,
+            writers,
+            processState,
+            eventTriggerBehavior,
+            variableBehavior);
   }
 
   @Override

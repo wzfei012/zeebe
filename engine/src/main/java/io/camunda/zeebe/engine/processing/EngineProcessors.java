@@ -30,6 +30,7 @@ import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessor;
 import io.camunda.zeebe.engine.processing.streamprocessor.TypedRecordProcessors;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
 import io.camunda.zeebe.engine.processing.timer.DueDateTimerChecker;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.immutable.ZeebeState;
 import io.camunda.zeebe.engine.state.migration.DbMigrationController;
@@ -85,9 +86,17 @@ public final class EngineProcessors {
         new EventTriggerBehavior(
             zeebeState.getKeyGenerator(), catchEventBehavior, writers, zeebeState);
 
+    final var variableBehavior =
+        new VariableBehavior(
+            zeebeState.getVariableState(), writers.state(), zeebeState.getKeyGenerator());
+
     final var eventPublicationBehavior =
         new BpmnEventPublicationBehavior(
-            zeebeState, zeebeState.getKeyGenerator(), eventTriggerBehavior, writers);
+            zeebeState,
+            zeebeState.getKeyGenerator(),
+            eventTriggerBehavior,
+            variableBehavior,
+            writers);
 
     addDeploymentRelatedProcessorAndServices(
         catchEventBehavior,
@@ -103,6 +112,7 @@ public final class EngineProcessors {
         zeebeState.getKeyGenerator());
     addMessageProcessors(
         eventTriggerBehavior,
+        variableBehavior,
         subscriptionCommandSender,
         zeebeState,
         typedRecordProcessors,
@@ -129,7 +139,8 @@ public final class EngineProcessors {
         eventPublicationBehavior,
         writers,
         jobMetrics,
-        eventTriggerBehavior);
+        eventTriggerBehavior,
+        variableBehavior);
 
     addIncidentProcessors(
         zeebeState,
@@ -229,12 +240,14 @@ public final class EngineProcessors {
 
   private static void addMessageProcessors(
       final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior,
       final SubscriptionCommandSender subscriptionCommandSender,
       final MutableZeebeState zeebeState,
       final TypedRecordProcessors typedRecordProcessors,
       final Writers writers) {
     MessageEventProcessors.addMessageProcessors(
         eventTriggerBehavior,
+        variableBehavior,
         typedRecordProcessors,
         zeebeState,
         subscriptionCommandSender,

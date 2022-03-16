@@ -13,6 +13,7 @@ import io.camunda.zeebe.engine.processing.deployment.model.element.ExecutableSta
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.StateWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.TypedCommandWriter;
 import io.camunda.zeebe.engine.processing.streamprocessor.writers.Writers;
+import io.camunda.zeebe.engine.processing.variable.VariableBehavior;
 import io.camunda.zeebe.engine.state.KeyGenerator;
 import io.camunda.zeebe.engine.state.immutable.EventScopeInstanceState;
 import io.camunda.zeebe.engine.state.immutable.ProcessState;
@@ -43,19 +44,22 @@ public final class EventHandle {
   private final TypedCommandWriter commandWriter;
   private final StateWriter stateWriter;
   private final EventTriggerBehavior eventTriggerBehavior;
+  private final VariableBehavior variableBehavior;
 
   public EventHandle(
       final KeyGenerator keyGenerator,
       final EventScopeInstanceState eventScopeInstanceState,
       final Writers writers,
       final ProcessState processState,
-      final EventTriggerBehavior eventTriggerBehavior) {
+      final EventTriggerBehavior eventTriggerBehavior,
+      final VariableBehavior variableBehavior) {
     this.keyGenerator = keyGenerator;
     this.eventScopeInstanceState = eventScopeInstanceState;
     this.processState = processState;
     commandWriter = writers.command();
     stateWriter = writers.state();
     this.eventTriggerBehavior = eventTriggerBehavior;
+    this.variableBehavior = variableBehavior;
   }
 
   public boolean canTriggerElement(final ElementInstance eventScopeInstance) {
@@ -193,14 +197,23 @@ public final class EventHandle {
       final DirectBuffer targetElementId,
       final DirectBuffer variablesBuffer) {
 
+    final var process = processState.getProcessByKey(processDefinitionKey);
+
+    if (variablesBuffer.capacity() > 0) {
+      variableBehavior.mergeLocalDocument(
+          processInstanceKey,
+          processDefinitionKey,
+          processInstanceKey,
+          process.getBpmnProcessId(),
+          variablesBuffer);
+    }
+
     triggeringProcessEvent(
         processDefinitionKey,
         processInstanceKey,
         processDefinitionKey /* The eventScope for the start event is the process definition key */,
         targetElementId,
         variablesBuffer);
-
-    final var process = processState.getProcessByKey(processDefinitionKey);
 
     recordForPICreation
         .setBpmnProcessId(process.getBpmnProcessId())
