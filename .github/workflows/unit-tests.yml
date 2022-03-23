@@ -10,9 +10,13 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - run: sudo apt-get -y install jq
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
       - name: Get Project List
         id: list-projects
-        run: echo "::set-output name=projects::$(find -wholename "./*/pom.xml" -exec dirname {} \; | jq --compact-output --raw-input [inputs])"
+        run: echo "::set-output name=projects::$(mvn -Dexec.executable='echo' -Dexec.args='${project.artifactId}' exec:exec -q |  jq --compact-output --raw-input [inputs])"
     outputs:
       matrix: ${{ steps.list-projects.outputs.projects }}
   unit-tests:
@@ -30,7 +34,7 @@ jobs:
           java-version: '17'
           cache: 'maven'
       - run: mvn -T1C -B -D skipTests -D skipChecks install
-      - run: mvn -B -D skipITs -D skipChecks verify -pl ${{ matrix.project }}
+      - run: mvn -B -D skipITs -D skipChecks verify -pl :${{ matrix.project }}
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
