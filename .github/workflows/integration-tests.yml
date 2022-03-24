@@ -19,7 +19,7 @@ jobs:
           maven-version: 3.8.5
       - run: mvn -T1C -B -DskipChecks -DskipTests package
       - run: docker build --build-arg DISTBALL=dist/target/camunda-zeebe-*.tar.gz --build-arg APP_ENV=dev -t camunda/zeebe:current-test .
-      - run: mvn -T1C -B -D skipUTs -D skipChecks verify
+      - run: mvn -T2 -B -D skipUTs -D skipChecks -D junitThreadCount=8 -P parallel-tests verify
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
