@@ -17,6 +17,8 @@ jobs:
       - uses: stCarolas/setup-maven@v4.3
         with:
           maven-version: 3.8.5
+      - run: mvn -T1C -B -DskipChecks -DskipTests package
+      - run: docker build --build-arg DISTBALL=dist/target/camunda-zeebe-*.tar.gz --build-arg APP_ENV=dev -t camunda/zeebe:current-test .
       - run: mvn -T1C -B -D skipUTs -D skipChecks verify
       - name: Publish Test Report
         if: always()
