@@ -16,7 +16,7 @@ jobs:
       - uses: stCarolas/setup-maven@v4.3
         with:
           maven-version: 3.8.5
-      - run: mvn -T2 -B -P parallel-tests -DjunitThreadCount=8 -D skipITs -D skipChecks verify
+      - run: mvn -B -D skipITs -D skipChecks verify
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
