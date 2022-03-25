@@ -1,9 +1,6 @@
-name: "Code Scanning"
+name: Code Scanning
 on:
-  push:
-    branches: [main]
   pull_request:
-    branches: [main]
 jobs:
   CodeQL:
     runs-on: ubuntu-latest
