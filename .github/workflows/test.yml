@@ -49,7 +49,7 @@ jobs:
       - name: Get Project List
         id: list-projects
         run: >
-          echo "::set-output name=fast::$(mvn -pl !:zeebe-workflow-engine,!:zeebe-logstreams -Dexec.executable='echo' -Dexec.args='${project.artifactId}' exec:exec -q |  jq -cnR [inputs])"
+          echo "::set-output name=fast::$(mvn -pl !:zeebe-workflow-engine,!:zeebe-logstreams,!:zeebe-atomix-cluster -Dexec.executable='echo' -Dexec.args='${project.artifactId}' exec:exec -q |  jq -cnR [inputs])"
     outputs:
       fast: ${{ steps.list-projects.outputs.fast }}
   fast-unit-tests:
@@ -89,7 +89,7 @@ jobs:
         with:
           maven-version: 3.8.5
       - run: mvn -T1C -B -D skipTests -D skipChecks install
-      - run: mvn -B -D skipITs -D skipChecks -D junitThreadCount=8 -P parallel-tests -pl :zeebe-workflow-engine,:zeebe-logstreams verify
+      - run: mvn -B -D skipITs -D skipChecks -D junitThreadCount=8 -P parallel-tests -pl :zeebe-atomix-cluster,:zeebe-workflow-engine,:zeebe-logstreams verify
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
