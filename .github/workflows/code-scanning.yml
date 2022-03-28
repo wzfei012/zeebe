@@ -27,7 +27,6 @@ jobs:
         with:
           languages: java
           queries: +security-and-quality
-          config-file: ./.github/codeql/codeql-config.yml
       - name: Build
         run: mvn -B -T1C -DskipTests -DskipChecks install
       - name: Perform CodeQL Analysis
@@ -52,4 +51,4 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: 'maven'
-      - run: mvn -B -D skipTests -P checkFormat,-autoFormat validate
+      - run: mvn -T1C -B -D skipTests -P checkFormat,-autoFormat validate
