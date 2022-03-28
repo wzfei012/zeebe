@@ -5,6 +5,7 @@ on:
 
 jobs:
   integration-tests:
+    name: Integration tests
     runs-on: ["n1-standard-32-netssd-preempt"]
     steps:
       - uses: actions/checkout@v3
@@ -25,8 +26,48 @@ jobs:
         with:
           check_name: Integration Tests
           fail_if_no_tests: false
-  unit-tests:
-    runs-on: [ "n1-standard-32-netssd-preempt" ]
+  project-list:
+    name: List projects
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - run: sudo apt-get -y install jq
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+      - name: Get Project List
+        id: list-projects
+        run: >
+          echo "::set-output name=fast::$(mvn -pl !:zeebe-workflow-engine,!:zeebe-logstreams -Dexec.executable='echo' -Dexec.args='${project.artifactId}' exec:exec -q |  jq -cnR [inputs])"
+    outputs:
+      fast: ${{ steps.list-projects.outputs.fast }}
+  fast-unit-tests:
+    name: Fast unit tests
+    needs: project-list
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(needs.project-list.outputs.fast) }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+      - run: mvn -T1C -B -D skipTests -D skipChecks install
+      - run: mvn -B -D skipITs -D skipChecks verify -pl :${{ matrix.project }}
+      - name: Publish Test Report
+        if: always()
+        uses: scacap/action-surefire-report@v1
+        with:
+          check_name: Unit tests for ${{ matrix.project }}
+          fail_if_no_tests: false
+  slow-unit-tests:
+    name: Slow unit tests
+    runs-on: ["n1-standard-32-netssd-preempt"]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-java@v3
@@ -37,17 +78,18 @@ jobs:
       - uses: stCarolas/setup-maven@v4.3
         with:
           maven-version: 3.8.5
-      - run: mvn -B -D skipITs -D skipChecks -D junitThreadCount=8 -P parallel-tests verify
+      - run: mvn -T1C -B -D skipTests -D skipChecks install
+      - run: mvn -B -D skipITs -D skipChecks -D junitThreadCount=8 -P parallel-tests -pl :zeebe-workflow-engine,:zeebe-logstreams verify
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
         with:
-          check_name: Unit Tests
+          check_name: Slow unit test results
           fail_if_no_tests: false
   smoke-tests:
     # This name is hard-referenced from bors.toml
     # Remember to update that if this name, or the matrix.os changes
-    name: Run smoke tests on ${{ matrix.os }}
+    name: Smoke tests on ${{ matrix.os }}
     timeout-minutes: 20
     runs-on: ${{ matrix.os }}
     strategy:
