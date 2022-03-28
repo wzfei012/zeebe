@@ -91,9 +91,10 @@ jobs:
       - run: mvn -T1C -B -D skipTests -D skipChecks install
       - run: mvn -B -D skipITs -D skipChecks -D junitThreadCount=8 -P parallel-tests -pl :zeebe-atomix-cluster,:zeebe-workflow-engine,:zeebe-logstreams verify
       - name: Publish Test Report
-        if: always()
-        uses: scacap/action-surefire-report@v1
+        uses: mikepenz/action-junit-report@v3
+        if: always() # always run even if the previous step fails
         with:
+          report_paths: "**/surefire-reports/TEST-*.xml"
           check_name: Slow unit test results
           fail_if_no_tests: false
   smoke-tests:
