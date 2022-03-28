@@ -1,6 +1,13 @@
 name: Tests
 
 on:
+  push:
+    branches:
+      - main
+      - stable/*
+      - release/*
+      - trying
+      - staging
   pull_request:
 
 jobs:
