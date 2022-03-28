@@ -1,6 +1,8 @@
 name: Code quality
 on:
   push:
+    tags:
+      - v*
     branches:
       - main
       - stable/*
