@@ -57,7 +57,7 @@ jobs:
       - name: Get Project List
         id: list-projects
         run: >
-          echo "::set-output name=fast::$(mvn -pl !:zeebe-workflow-engine,!:zeebe-logstreams,!:zeebe-atomix-cluster -Dexec.executable='echo' -Dexec.args='${project.artifactId}' exec:exec -q |  jq -cnR [inputs])"
+          echo "::set-output name=fast::$(mvn -pl !:zeebe-workflow-engine,!:zeebe-logstreams -Dexec.executable='echo' -Dexec.args='${project.artifactId}' exec:exec -q |  jq -cnR [inputs])"
     outputs:
       fast: ${{ steps.list-projects.outputs.fast }}
   fast-unit-tests:
@@ -98,7 +98,7 @@ jobs:
         with:
           maven-version: 3.8.5
       - run: mvn -T1C -B -D skipTests -D skipChecks package
-      - run: mvn -B -D skipITs -D skipChecks -pl :zeebe-atomix-cluster,:zeebe-workflow-engine,:zeebe-logstreams verify
+      - run: mvn -B -D skipITs -D skipChecks -pl :zeebe-workflow-engine,:zeebe-logstreams verify
       - name: Archive Test Results
         uses: actions/upload-artifact@v2
         if: failure()
