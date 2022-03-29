@@ -29,7 +29,7 @@ jobs:
           maven-version: 3.8.5
       - run: mvn -T1C -B -DskipChecks -DskipTests package
       - run: docker build --build-arg DISTBALL=dist/target/camunda-zeebe-*.tar.gz --build-arg APP_ENV=dev -t camunda/zeebe:current-test .
-      - run: mvn -T2 -B -D skipUTs -D skipChecks -D junitThreadCount=8 -P parallel-tests verify
+      - run: mvn -T2 -B -D skipUTs -D skipChecks -D junitThreadCount=8 -Dfailsafe.rerunFailingTestsCount=3 -Dflaky.test.reportDir=failsafe-reports -P parallel-tests,extract-flaky-tests verify
       - name: Publish Test Report
         if: always()
         uses: scacap/action-surefire-report@v1
@@ -40,7 +40,7 @@ jobs:
         uses: actions/upload-artifact@v2
         if: failure()
         with:
-          name: Integration test results for ${{ matrix.project }}
+          name: Integration test results
           path: "**/target/failsafe-reports/"
           retention-days: 7
   project-list:
