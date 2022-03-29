@@ -41,7 +41,7 @@ jobs:
         if: failure()
         with:
           name: Integration test results for ${{ matrix.project }}
-          path: "**/target/surefire-reports/"
+          path: "**/target/failsafe-reports/"
           retention-days: 7
   project-list:
     name: List projects
@@ -135,6 +135,6 @@ jobs:
         if: failure()
         with:
           name: Smoke test results for ${{ matrix.os }}
-          path: "**/target/surefire-reports/"
+          path: "**/target/failsafe-reports/"
           retention-days: 7
 
