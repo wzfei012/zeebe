@@ -20,7 +20,7 @@ import io.camunda.zeebe.protocol.record.RecordValueWithVariables;
 import org.immutables.value.Value;
 
 @Value.Immutable
-@ImmutableProtocol
+@ImmutableProtocol(builder = ImmutableProcessInstanceCreationRecordValue.Builder.class)
 public interface ProcessInstanceCreationRecordValue
     extends RecordValueWithVariables, ProcessInstanceRelated {
   /** @return the BPMN process id to create a process from */
