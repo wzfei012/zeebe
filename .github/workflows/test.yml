@@ -11,6 +11,7 @@ on:
       - trying
       - staging
   pull_request:
+  workflow_dispatch:
 
 jobs:
   integration-tests:
@@ -35,6 +36,13 @@ jobs:
         with:
           check_name: Integration Tests
           fail_if_no_tests: false
+      - name: Archive Test Results
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: Integration test results for ${{ matrix.project }}
+          path: "**/target/surefire-reports/"
+          retention-days: 7
   project-list:
     name: List projects
     runs-on: ubuntu-latest
@@ -89,8 +97,8 @@ jobs:
       - uses: stCarolas/setup-maven@v4.3
         with:
           maven-version: 3.8.5
-      - run: mvn -T1C -B -D skipTests -D skipChecks install
-      - run: mvn -B -D skipITs -D skipChecks -D junitThreadCount=8 -P parallel-tests -pl :zeebe-atomix-cluster,:zeebe-workflow-engine,:zeebe-logstreams verify
+      - run: mvn -T1C -B -D skipTests -D skipChecks package
+      - run: mvn -B -D skipITs -D skipChecks -pl :zeebe-atomix-cluster,:zeebe-workflow-engine,:zeebe-logstreams verify
       - name: Archive Test Results
         uses: actions/upload-artifact@v2
         if: failure()
