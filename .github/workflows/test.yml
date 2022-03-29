@@ -130,4 +130,11 @@ jobs:
         run: mvn -B -am -pl qa/integration-tests install -DskipTests -DskipChecks "-Dmaven.javadoc.skip=true" -T1C
       - name: Run smoke test
         run: mvn -B -pl qa/integration-tests verify -P smoke-test -DskipUTs -DskipChecks
+      - name: Archive Test Results
+        uses: actions/upload-artifact@v2
+        if: failure()
+        with:
+          name: Smoke test results for ${{ matrix.os }}
+          path: "**/target/surefire-reports/"
+          retention-days: 7
 
