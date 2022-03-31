@@ -10,7 +10,7 @@ ENV TMP_ARCHIVE=/tmp/zeebe.tar \
 
 ARG TARGETARCH
 # COPY ${DISTBALL} ${TMP_ARCHIVE}
-ADD  https://github.com/camunda/zeebe/releases/download/1.3.4/camunda-cloud-zeebe-1.3.4.tar.gz  ${TMP_ARCHIVE}/camunda-cloud-zeebe-1.3.4.tar.gz
+ADD  https://github.com/camunda/zeebe/releases/download/1.3.4/camunda-cloud-zeebe-1.3.4.tar.gz  ${TMP_ARCHIVE}
 #COPY  camunda-cloud-zeebe-1.3.4.tar.gz ${TMP_ARCHIVE}
 
 RUN mkdir -p ${TMP_DIR} && \
